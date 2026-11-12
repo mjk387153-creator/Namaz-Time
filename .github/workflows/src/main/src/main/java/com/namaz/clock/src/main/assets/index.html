@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>নামাজ ঘড়ি উইজেট</title>
+<style>
+:root{--card:#0a161d;--line:#17303b;--cyan:#38e8ff;--green:#3dff8a;--red:#ff5a4d;--amber:#ffd36b;--txt:#d8f3f8;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#10303c,#03080c 65%);color:var(--txt);font-family:"Hind Siliguri","Noto Sans Bengali","Kalpurush",sans-serif;padding:16px;display:flex;justify-content:center;align-items:flex-start}
+.wrap{width:min(440px,100%)}
+.mono{font-family:"Orbitron","Share Tech Mono","Courier New",monospace}
+.widget{position:relative;background:linear-gradient(#08151c,#040b10);border:2px solid var(--line);border-radius:20px;padding:26px 16px 20px;text-align:center;box-shadow:0 0 50px rgba(56,232,255,.15)}
+.gear{position:absolute;top:10px;right:10px;background:#0f2a35;border:1px solid var(--line);color:var(--cyan);border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer}
+.time{color:var(--red);text-shadow:0 0 14px rgba(255,90,77,.8);display:flex;justify-content:center;align-items:baseline;gap:8px}
+.hm{font-size:clamp(46px,15vw,70px);font-weight:700}.s{font-size:clamp(22px,7vw,32px)}.ap{font-size:14px;color:var(--amber)}
+.day{color:var(--green);font-weight:700;font-size:24px;text-shadow:0 0 10px var(--green);margin-top:6px}
+.date{color:var(--amber);font-size:19px;margin-top:2px}
+.next{margin-top:16px;padding:12px;border-radius:14px;background:#0d2029;border:1px solid var(--line)}
+.next small{color:#8fb0b8;font-size:14px}
+.next .nm{font-size:26px;font-weight:700;color:var(--cyan);text-shadow:0 0 10px rgba(56,232,255,.6)}
+.next .nt{font-size:30px;color:var(--red);text-shadow:0 0 10px rgba(255,90,77,.7);margin:2px 0}
+.cd{color:var(--amber);font-size:16px}
+.quiet{display:none;margin-top:10px;padding:8px;border-radius:10px;background:#3a1010;color:#ffb3aa;border:1px solid var(--red);font-weight:700;font-size:14px}.quiet.on{display:block}
+.set{display:none}.set.on{display:block}
+.bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bar h1{font-size:20px;margin:0;color:var(--cyan)}
+button,select,input{font:inherit}
+button.b{background:#0f2a35;color:var(--cyan);border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.tabs button{padding:8px 2px;font-size:14px;border-radius:10px;border:1px solid var(--line);background:#0a161d;color:#8fb0b8;cursor:pointer}
+.tabs button.on{background:#12404e;color:var(--amber);border-color:var(--amber)}
+.pane{display:none}.pane.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0;font-size:16px}
+.row .n{font-weight:700;color:var(--cyan);font-size:18px}
+select,input[type=time],input[type=text]{background:#06121a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:60%}
+input[type=range]{width:55%}
+.sw{appearance:none;width:44px;height:24px;border-radius:12px;background:#243a44;position:relative;cursor:pointer;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#9db}
+.sw:checked{background:#1d7a4a}.sw:checked::after{left:23px;background:#fff}
+.note{font-size:13px;color:#8fb0b8;line-height:1.5;margin:8px 2px}
+.ok{color:var(--green);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section class="widget" id="home" aria-label="ঘড়ি উইজেট">
+  <button class="gear" id="openSet" type="button" aria-label="সেটিংস">⚙️</button>
+  <div class="time mono"><span class="hm" id="hm">0:00</span><span class="s" id="sec">00</span><span class="ap" id="ap">AM</span></div>
+  <div class="day" id="day"></div>
+  <div class="date" id="date"></div>
+  <div class="next"><small>পরবর্তী নামাজ</small><div class="nm" id="nName"></div><div class="nt mono" id="nTime"></div><div class="cd" id="nCd"></div></div>
+  <div class="quiet" id="quiet"></div>
+</section>
+
+<section class="set" id="settings">
+  <div class="bar"><h1>সেটিংস</h1><button class="b" id="closeSet" type="button">✕ বন্ধ করুন</button></div>
+  <div class="tabs" role="tablist">
+    <button type="button" data-t="loc" class="on">লোকেশন</button>
+    <button type="button" data-t="times">সময়সূচী</button>
+    <button type="button" data-t="dnd">ডু নট ডিস্টার্ব</button>
+    <button type="button" data-t="alarm">অ্যালার্ম</button>
+  </div>
+
+  <div class="pane on" id="t-loc">
+    <div class="card">
+      <div class="row"><span>বিভাগ</span><select id="selDiv"></select></div>
+      <div class="row"><span>জেলা</span><select id="selDist"></select></div>
+      <div class="row"><span>উপজেলা</span><select id="selUpa"></select></div>
+      <div class="row" id="upaTxtRow" style="display:none"><span>উপজেলার নাম</span><input type="text" id="upaTxt" placeholder="নিজে লিখুন"></div>
+      <div class="ok" id="locShow"></div>
+    </div>
+    <p class="note">রংপুর বিভাগের সব উপজেলা তালিকায় আছে। অন্য বিভাগের জেলা বাছাই করে উপজেলার নাম নিজে লিখুন।</p>
+  </div>
+
+  <div class="pane" id="t-times"><div class="card" id="timesList"></div>
+    <p class="note">প্রতি ওয়াক্তের সময় নিজে ঠিক করুন। জুম’আ শুধু শুক্রবারে কাজ করবে।</p></div>
+
+  <div class="pane" id="t-dnd"><div class="card" id="dndList"></div>
+    <p class="note">ডু নট ডিস্টার্ব চালু থাকলে ওয়াক্ত শুরুর পর নির্ধারিত সময় পর্যন্ত ওই ওয়াক্তের অ্যালার্ম বাজবে না এবং হোম স্ক্রিনে নীরব থাকার বার্তা দেখাবে। ফোনের নিজস্ব ডু নট ডিস্টার্ব এই পেজ থেকে চালু করা যায় না।</p></div>
+
+  <div class="pane" id="t-alarm">
+    <div class="card" id="alarmList"></div>
+    <div class="card">
+      <div class="row"><span>রিংটোন</span><select id="tone"></select></div>
+      <div class="row"><span>নিজের রিংটোন</span><input type="file" id="file" accept="audio/*" style="max-width:55%"></div>
+      <div class="row"><span>ভলিউম</span><input type="range" id="vol" min="0.1" max="1" step="0.1"></div>
+      <div class="row"><span>বাজবে</span><select id="rep"></select></div>
+      <button class="b" id="test" type="button">▶ রিংটোন শুনুন</button> <span class="ok" id="fileMsg"></span>
+    </div>
+    <p class="note">অ্যালার্ম বাজার সময় পেজটি খোলা থাকতে হবে। নিজের রিংটোন বাছলে ফাইলটি এই ব্রাউজারে সেভ হবে (বড় ফাইল হলে শুধু এই সেশনে থাকবে)।</p>
+  </div>
+</section>
+</div>
+
+<script>
+var BN="০১২৩৪৫৬৭৮৯",DAYS=["রবিবার","সোমবার","মঙ্গলবার","বুধবার","বৃহস্পতিবার","শুক্রবার","শনিবার"],
+MON=["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"];
+function bn(x){return String(x).replace(/\d/g,function(d){return BN[d]})}
+function p2(n){return (n<10?"0":"")+n}
+function $(i){return document.getElementById(i)}
+var GEO={
+"রংপুর":{"রংপুর":["রংপুর সদর","বদরগঞ্জ","গঙ্গাচড়া","কাউনিয়া","মিঠাপুকুর","পীরগাছা","পীরগঞ্জ","তারাগঞ্জ"],
+"দিনাজপুর":["দিনাজপুর সদর","বীরগঞ্জ","বিরামপুর","বিরল","বোচাগঞ্জ","চিরিরবন্দর","ফুলবাড়ী","ঘোড়াঘাট","হাকিমপুর","কাহারোল","খানসামা","নবাবগঞ্জ","পার্বতীপুর"],
+"গাইবান্ধা":["গাইবান্ধা সদর","ফুলছড়ি","গোবিন্দগঞ্জ","পলাশবাড়ী","সাদুল্লাপুর","সাঘাটা","সুন্দরগঞ্জ"],
+"কুড়িগ্রাম":["কুড়িগ্রাম সদর","ভুরুঙ্গামারী","চিলমারী","ফুলবাড়ী","নাগেশ্বরী","রাজারহাট","রাজিবপুর","রৌমারী","উলিপুর"],
+"লালমনিরহাট":["লালমনিরহাট সদর","আদিতমারী","হাতীবান্ধা","কালীগঞ্জ","পাটগ্রাম"],
+"নীলফামারী":["নীলফামারী সদর","ডিমলা","ডোমার","জলঢাকা","কিশোরগঞ্জ","সৈয়দপুর"],
+"পঞ্চগড়":["পঞ্চগড় সদর","আটোয়ারী","বোদা","দেবীগঞ্জ","তেঁতুলিয়া"],
+"ঠাকুরগাঁও":["ঠাকুরগাঁও সদর","বালিয়াডাঙ্গী","হরিপুর","পীরগঞ্জ","রাণীশংকৈল"]},
+"ঢাকা":"ঢাকা,ফরিদপুর,গাজীপুর,গোপালগঞ্জ,কিশোরগঞ্জ,মাদারীপুর,মানিকগঞ্জ,মুন্সীগঞ্জ,নারায়ণগঞ্জ,নরসিংদী,রাজবাড়ী,শরীয়তপুর,টাঙ্গাইল",
+"চট্টগ্রাম":"বান্দরবান,ব্রাহ্মণবাড়িয়া,চাঁদপুর,চট্টগ্রাম,কুমিল্লা,কক্সবাজার,ফেনী,খাগড়াছড়ি,লক্ষ্মীপুর,নোয়াখালী,রাঙ্গামাটি",
+"রাজশাহী":"বগুড়া,জয়পুরহাট,নওগাঁ,নাটোর,চাঁপাইনবাবগঞ্জ,পাবনা,রাজশাহী,সিরাজগঞ্জ",
+"খুলনা":"বাগেরহাট,চুয়াডাঙ্গা,যশোর,ঝিনাইদহ,খুলনা,কুষ্টিয়া,মাগুরা,মেহেরপুর,নড়াইল,সাতক্ষীরা",
+"বরিশাল":"বরগুনা,বরিশাল,ভোলা,ঝালকাঠি,পটুয়াখালী,পিরোজপুর",
+"সিলেট":"হবিগঞ্জ,মৌলভীবাজার,সুনামগঞ্জ,সিলেট",
+"ময়মনসিংহ":"জামালপুর,ময়মনসিংহ,নেত্রকোণা,শেরপুর"};
+var DEF=[
+{id:"fajr",name:"ফজর",time:"05:40"},{id:"zuhr",name:"যোহর",time:"13:30"},{id:"asr",name:"আছর",time:"16:00"},
+{id:"maghrib",name:"মাগরিব",time:"17:40"},{id:"isha",name:"এশা",time:"19:05"},{id:"jumua",name:"জুম’আ",time:"13:20",fri:true}];
+var S={loc:{div:"রংপুর",dist:"পঞ্চগড়",upa:"দেবীগঞ্জ"},times:{},dnd:{},alarm:{},tone:"bell",vol:0.7,rep:1,custom:null};
+DEF.forEach(function(p){S.times[p.id]=p.time;S.dnd[p.id]={on:true,dur:p.fri?45:20};S.alarm[p.id]=true});
+try{var r=localStorage.getItem("namaz-v2");if(r){var j=JSON.parse(r);if(j&&j.times)S=j}}catch(e){}
+function save(){try{localStorage.setItem("namaz-v2",JSON.stringify(S))}catch(e){}}
+function t12(h){var a=h.split(":"),x=+a[0],ap=x>=12?"PM":"AM";x=x%12||12;return bn(x+":"+a[1])+" "+ap}
+function mins(h){var a=h.split(":");return +a[0]*60+ +a[1]}
+
+/* ---- sound ---- */
+var TONES={bell:"ঘণ্টা",beep:"বিপ",chime:"চাইম (তিন সুর)",soft:"মৃদু সুর"};
+function synth(kind,vol){
+ try{var c=new (window.AudioContext||window.webkitAudioContext)();
+  var seq={bell:880,0,1.8,beep:660,0,.4],[660,.5,.4,chime:523,0,.6],[659,.5,.6],[784,1,1,soft:440,0,1.2],[554,.4,1.2}[kind]||880,0,1;
+  seq.forEach(function(n){var o=c.createOscillator(),g=c.createGain();o.type=kind=="beep"?"square":"sine";o.frequency.value=n[0];
+   o.connect(g);g.connect(c.destination);var t=c.currentTime+n[1];g.gain.setValueAtTime(vol*.3,t);g.gain.exponentialRampToValueAtTime(.001,t+n[2]);o.start(t);o.stop(t+n[2]+.05)});
+ }catch(e){}
+}
+var AU=null,sessionFile=null;
+function ring(){
+ var times=S.rep||1,i=0;
+ function once(){
+  if(S.tone=="custom"&&(S.custom||sessionFile)){try{AU=new Audio(sessionFile||S.custom);AU.volume=S.vol;AU.play()}catch(e){}}
+  else synth(S.tone,S.vol);
+  i++;if(i<times)setTimeout(once,3000);
+ }
+ once();
+}
+
+/* ---- settings UI ---- */
+function fillSel(el,arr,val){el.innerHTML=arr.map(function(x){return '<option'+(x==val?' selected':'')+'>'+x+'</option>'}).join("")}
+function locUpdate(){
+ var d=S.loc.div,g=GEO[d];
+ fillSel($("selDiv"),Object.keys(GEO),d);
+ var dists=typeof g=="string"?g.split(","):Object.keys(g);
+ if(dists.indexOf(S.loc.dist)<0)S.loc.dist=dists[0];
+ fillSel($("selDist"),dists,S.loc.dist);
+ var upas=typeof g=="string"?null:g[S.loc.dist];
+ if(upas){if(upas.indexOf(S.loc.upa)<0)S.loc.upa=upas[0];fillSel($("selUpa"),upas,S.loc.upa);$("selUpa").style.display="";$("upaTxtRow").style.display="none"}
+ else{$("selUpa").style.display="none";$("upaTxtRow").style.display="flex";$("upaTxt").value=S.loc.upa&&dists.indexOf(S.loc.upa)<0&&S.loc.div==d?S.loc.upa:""}
+ $("locShow").textContent="📍 "+(S.loc.upa?S.loc.upa+", ":"")+S.loc.dist+", "+d+" বিভাগ";
+}
+$("selDiv").onchange=function(){S.loc.div=this.value;S.loc.dist="";S.loc.upa="";locUpdate();save()};
+$("selDist").onchange=function(){S.loc.dist=this.value;S.loc.upa="";locUpdate();save()};
+$("selUpa").onchange=function(){S.loc.upa=this.value;locUpdate();save()};
+$("upaTxt").oninput=function(){S.loc.upa=this.value.trim();$("locShow").textContent="📍 "+(S.loc.upa?S.loc.upa+", ":"")+S.loc.dist+", "+S.loc.div+" বিভাগ";save()};
+
+function buildLists(){
+ $("timesList").innerHTML=DEF.map(function(p){return '<div class="row"><span class="n">'+p.name+(p.fri?' (শুক্র)':'')+'</span><input type="time" data-id="'+p.id+'" value="'+S.times[p.id]+'"></div>'}).join("");
+ $("dndList").innerHTML=DEF.map(function(p){var d=S.dnd[p.id];return '<div class="row"><span class="n">'+p.name+'</span><span><select data-dur="'+p.id+'">'+[10,15,20,30,45,60].map(function(m){return '<option value="'+m+'"'+(m==d.dur?' selected':'')+'>'+bn(m)+' মিনিট</option>'}).join("")+'</select> <input class="sw" type="checkbox" data-dnd="'+p.id+'"'+(d.on?' checked':'')+' aria-label="'+p.name+' ডু নট ডিস্টার্ব"></span></div>'}).join("");
+ $("alarmList").innerHTML=DEF.map(function(p){return '<div class="row"><span class="n">'+p.name+'</span><input class="sw" type="checkbox" data-al="'+p.id+'"'+(S.alarm[p.id]?' checked':'')+' aria-label="'+p.name+' অ্যালার্ম"></div>'}).join("");
+ var tk=Object.keys(TONES).map(function(k){return '<option value="'+k+'"'+(S.tone==k?' selected':'')+'>'+TONES[k]+'</option>'});
+ tk.push('<option value="custom"'+(S.tone=="custom"?' selected':'')+'>আমার ফাইল</option>');
+ $("tone").innerHTML=tk.join("");
+ $("vol").value=S.vol;
+ $("rep").innerHTML=[1,2,3].map(function(n){return '<option value="'+n+'"'+(S.rep==n?' selected':'')+'>'+bn(n)+' বার</option>'}).join("");
+}
+document.addEventListener("change",function(e){
+ var t=e.target;
+ if(t.dataset.id){if(t.value)S.times[t.dataset.id]=t.value}
+ else if(t.dataset.dnd)S.dnd[t.dataset.dnd].on=t.checked;
+ else if(t.dataset.dur)S.dnd[t.dataset.dur].dur=+t.value;
+ else if(t.dataset.al)S.alarm[t.dataset.al]=t.checked;
+ else if(t.id=="tone")S.tone=t.value;
+ else if(t.id=="vol")S.vol=+t.value;
+ else if(t.id=="rep")S.rep=+t.value;
+ else return;
+ save();
+});
+$("test").onclick=ring;
+$("file").onchange=function(){
+ var f=this.files[0];if(!f)return;
+ var rd=new FileReader();
+ rd.onload=function(){
+  sessionFile=rd.result;S.tone="custom";$("tone").value="custom";
+  if(rd.result.length<2500000){S.custom=rd.result;$("fileMsg").textContent="✓ "+f.name+" সেভ হয়েছে"}
+  else{S.custom=null;$("fileMsg").textContent="✓ "+f.name+" (শুধু এই সেশনে)"}
+  save();
+ };
+ rd.readAsDataURL(f);
+};
+document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function(){
+ document.querySelectorAll(".tabs button").forEach(function(x){x.classList.remove("on")});
+ document.querySelectorAll(".pane").forEach(function(x){x.classList.remove("on")});
+ b.classList.add("on");$("t-"+b.dataset.t).classList.add("on")}});
+$("openSet").onclick=function(){$("home").style.display="none";$("settings").classList.add("on")};
+$("closeSet").onclick=function(){$("settings").classList.remove("on");$("home").style.display="";tick()};
+
+/* ---- clock ---- */
+var fired="";
+function tick(){
+ var n=new Date(),H=n.getHours(),M=n.getMinutes(),s=n.getSeconds(),cur=H*60+M,fri=n.getDay()==5;
+ $("hm").textContent=bn((H%12||12)+":"+p2(M));$("sec").textContent=bn(p2(s));$("ap").textContent=H>=12?"PM":"AM";
+ $("day").textContent=DAYS[n.getDay()];
+ $("date").textContent=bn(n.getDate())+" "+MON[n.getMonth()]+" "+bn(n.getFullYear());
+ var best=1e9,nx=null,quiet=null;
+ DEF.forEach(function(p){
+  if(p.fri&&!fri)return;
+  var m=mins(S.times[p.id]),d=m*60-(cur*60+s);if(d<0)d+=86400;
+  if(d<best){best=d;nx=p}
+  var since=cur-m,dn=S.dnd[p.id];
+  if(since>=0&&since<dn.dur&&dn.on)quiet=p;
+  if(cur==m&&s<3){var k=p.id+n.toDateString();
+   if(fired!=k){fired=k;if(S.alarm[p.id]&&!dn.on)ring()}}
+ });
+ if(nx){$("nName").textContent=nx.name;$("nTime").textContent=t12(S.times[nx.id]);
+  $("nCd").textContent="বাকি "+bn(p2(Math.floor(best/3600))+":"+p2(Math.floor(best%3600/60))+":"+p2(best%60))}
+ var q=$("quiet");
+ if(quiet){q.textContent="🔕 ডু নট ডিস্টার্ব চালু ("+quiet.name+")";q.classList.add("on")}else q.classList.remove("on");
+}
+buildLists();locUpdate();tick();setInterval(tick,1000);
+</script>
+</body>
+</html>
